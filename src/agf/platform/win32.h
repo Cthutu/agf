@@ -19,6 +19,34 @@ namespace agf
     class Game;
     class CommandLine;
 
+    struct Point
+    {
+        int x, y;
+    };
+
+    struct Size
+    {
+        int dx, dy;
+    };
+
+    struct Rect
+    {
+        int x, y;
+        int w, h;
+    };
+
+    struct WindowInfo
+    {
+        HWND        handle;
+        HDC         dc;
+        HGLRC       gl;
+        Rect        pos;
+        Rect        origPos;
+        bool        fullScreen;
+    };
+
+    //----------------------------------------------------------------------------------------------------------------------
+
     class Win32Platform : public Platform
     {
     public:
@@ -26,6 +54,9 @@ namespace agf
         ~Win32Platform() override;
 
         int run() override;
+
+    private:
+        WindowInfo  m_info;
     };
 
 }
