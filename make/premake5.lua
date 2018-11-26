@@ -13,7 +13,7 @@ solution "agf"
 	configurations { "Debug", "Release" }
 	platforms { "Win64" }
 	location "../_build"
-    --debugdir "../data"
+    debugdir "../data"
     characterset "MBCS"
 
     -- Solution-wide defines
@@ -86,6 +86,7 @@ solution "agf"
 		configuration "Win*"
 			defines {
 				"WIN32",
+                "_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING",
 			}
 			flags {
 				"StaticRuntime",

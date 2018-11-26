@@ -8,10 +8,9 @@
 
 #pragma once
 
+#include <agf/core.h>
 #include <agf/platform/base.h>
-
-#define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
+#include <agf/platform/win32gl.h>
 
 namespace agf
 {
@@ -43,6 +42,19 @@ namespace agf
         Rect        pos;
         Rect        origPos;
         bool        fullScreen;
+
+        GLint       program;
+        Size        fontSize;
+        GLuint      vertexBuffer;
+        GLuint      fontTex;
+        GLuint      foreTex;
+        GLuint      backTex;
+        GLuint      textTex;
+        agf::u32*   foreImage;
+        agf::u32*   backImage;
+        agf::u32*   textImage;
+        Size        imageSize;
+        bool        glReady;
     };
 
     //----------------------------------------------------------------------------------------------------------------------

@@ -2,8 +2,301 @@
 // Implementation of Win32 platform layer.
 //----------------------------------------------------------------------------------------------------------------------
 
+#define STB_IMAGE_IMPLEMENTATION
+#include <agf/ext/stb_image.h>
+
+#include <agf/core.h>
+#include <agf/data.h>
+#include <agf/game/game.h>
 #include <agf/platform/win32.h>
-#include <agf/platform/win32gl.h>
+#include <memory.h>
+#include <stdlib.h>
+
+using namespace agf;
+
+//----------------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------------------------
+// O P E N G L
+//----------------------------------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------------------------------
+
+void openGLCompileShader(GLuint shader, const char* code)
+{
+    GLint result = 0;
+    GLint infoLogLength = 0;
+
+    glShaderSource(shader, 1, &code, NULL);
+    glCompileShader(shader);
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &result);
+    glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &infoLogLength);
+    if (infoLogLength > 0)
+    {
+        agf::string error;
+        error.resize(infoLogLength);
+        glGetShaderInfoLog(shader, infoLogLength, NULL, error.data());
+        agf::prn("{0}", error);
+        abort();
+    }
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+GLuint openGLCreateProgram(GLuint vertexShader, GLuint fragmentShader)
+{
+    GLuint program = glCreateProgram();
+    glAttachShader(program, vertexShader);
+    glAttachShader(program, fragmentShader);
+    glLinkProgram(program);
+
+    GLint result = 0;
+    int logLength = 0;
+    glGetProgramiv(program, GL_LINK_STATUS, &result);
+    glGetProgramiv(program, GL_INFO_LOG_LENGTH, &logLength);
+    if (logLength > 0)
+    {
+        agf::string error;
+        error.resize(logLength);
+        glGetProgramInfoLog(program, logLength, NULL, error.data());
+        agf::prn("{0}", error);
+        abort();
+    }
+
+    return program;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+GLuint openGLLoadFontTexture(agf::WindowInfo& info, const char* fileName)
+{
+    Data file(fileName);
+    GLuint textureID = 0;
+
+    if (file)
+    {
+        int width, height, bpp;
+        u32* image = (u32*)stbi_load_from_memory(file, (int)file.size(), &width, &height, &bpp, 4);
+        info.fontSize.dx = width / 16;
+        info.fontSize.dy = height / 16;
+
+        glGenTextures(1, &textureID);
+        glBindTexture(GL_TEXTURE_2D, textureID);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+        stbi_image_free(image);
+    }
+    return textureID;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+GLuint openGLCreateDynamicTexture(int width, int height, u32** outImage)
+{
+    u32* image = (u32 *)malloc(width * height * sizeof(u32));
+    for (int i = 0; i < width; ++i) image[i] = 0xffff00ff;
+
+    GLuint texId;
+    glGenTextures(1, &texId);
+    glBindTexture(GL_TEXTURE_2D, texId);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+
+    *outImage = image;
+    return texId;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+void openGLResizeDynamicTexture(GLuint id, int oldWidth, int oldHeight, int newWidth, int newHeight, u32** outImage)
+{
+    *outImage = (u32 *)realloc(*outImage, newWidth * newHeight * sizeof(u32));
+    glBindTexture(GL_TEXTURE_2D, id);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, newWidth, newHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, *outImage);
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+void openGLUpdateDynamicTexture(GLuint texId, u32* image, int width, int height)
+{
+    glBindTexture(GL_TEXTURE_2D, texId);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, image);
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+void openGLDestroyDynamicTexture(u32* image, int width, int height, GLuint id)
+{
+    glDeleteTextures(1, &id);
+    free(image);
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+#define GL_BUFFER_OFFSET(x) ((void *)(x))
+
+void openGLMessage(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam)
+{
+    bool showMessage = NO;
+
+    switch (type)
+    {
+    case GL_DEBUG_TYPE_ERROR:
+        pr("ERROR: ");
+        showMessage = YES;
+        break;
+
+    case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
+        pr("DEPRECATED BEHAVIOUR: ");
+        showMessage = YES;
+        break;
+
+    case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
+        pr("UNDEFINED BEHAVIOUR: ");
+        showMessage = YES;
+        break;
+
+    case GL_DEBUG_TYPE_PORTABILITY:
+        pr("PORTABILITY: ");
+        showMessage = YES;
+        break;
+
+    case GL_DEBUG_TYPE_PERFORMANCE:
+        pr("PERFORMANCE: ");
+        showMessage = YES;
+        break;
+
+    case GL_DEBUG_TYPE_OTHER:
+        pr("OTHER: ");
+        showMessage = YES;
+        break;
+    }
+
+    if (showMessage)
+    {
+        switch (severity)
+        {
+        case GL_DEBUG_SEVERITY_HIGH:    pr("[HIGH] ");          break;
+        case GL_DEBUG_SEVERITY_MEDIUM:  pr("[MED] ");           break;
+        case GL_DEBUG_SEVERITY_LOW:     pr("[LOW] ");           break;
+        }
+
+        prn("%s", message);
+
+        if (severity == GL_DEBUG_SEVERITY_HIGH) AGF_BREAK();
+    }
+}
+
+void openGLFillTexture(u32* image, GLuint id, u32 colour, int width, int height)
+{
+    int count = width * height;
+    for (int i = 0; i < count; ++i) image[i] = colour;
+    openGLUpdateDynamicTexture(id, image, width, height);
+}
+
+void openGLInit(WindowInfo& info, int width, int height)
+{
+    static const GLfloat buffer[] = {
+        //  X       Y       TX      TY
+        // Top left
+        -1.0f,  -1.0f,  0.0f,   0.0f,
+        1.0f,   -1.0f,  1.0f,   0.0f,
+        -1.0f,  1.0f,   0.0f,   1.0f,
+
+        // Bottom right
+        -1.0f,  1.0f,   0.0f,   1.0f,
+        1.0f,   -1.0f,  1.0f,   0.0f,
+        1.0f,   1.0f,   1.0f,   1.0f,
+    };
+
+    glEnable(GL_DEBUG_OUTPUT);
+    glDebugMessageCallback(openGLMessage, 0);
+
+    glGenBuffers(1, &info.vertexBuffer);
+    glBindBuffer(GL_ARRAY_BUFFER, info.vertexBuffer);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(buffer), buffer, GL_STATIC_DRAW);
+
+    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), GL_BUFFER_OFFSET(0));
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), GL_BUFFER_OFFSET(2 * sizeof(float)));
+
+    GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
+    GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+
+    Data vertexCode("ascii.vs");
+    Data pixelCode("ascii.fs");
+
+    openGLCompileShader(vertexShader, vertexCode);
+    openGLCompileShader(fragmentShader, pixelCode);
+    info.program = openGLCreateProgram(vertexShader, fragmentShader);
+
+    glDetachShader(info.program, vertexShader);
+    glDetachShader(info.program, fragmentShader);
+    glDeleteShader(vertexShader);
+    glDeleteShader(fragmentShader);
+
+    glUseProgram(info.program);
+
+    // Set up textures
+    info.fontTex = openGLLoadFontTexture(info, "font1.png");
+    int cw = width / info.fontSize.dx;
+    int ch = height / info.fontSize.dy;
+    info.foreTex = openGLCreateDynamicTexture(cw, ch, &info.foreImage);
+    info.backTex = openGLCreateDynamicTexture(cw, ch, &info.backImage);
+    info.textTex = openGLCreateDynamicTexture(cw, ch, &info.textImage);
+    info.imageSize.dx = cw;
+    info.imageSize.dy = ch;
+
+    GLuint loc;
+
+    // Bind shader variable "fontTex" to texture unit 0, then bind our texture to texture unit 0.
+    loc = glGetUniformLocation(info.program, "fontTex");
+    glUniform1i(loc, 0);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, info.fontTex);
+
+    // Bind shader variable "foreTex" to texture unit 1, then bind our texture to texture unit 1.
+    loc = glGetUniformLocation(info.program, "foreTex");
+    glUniform1i(loc, 1);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, info.foreTex);
+
+    // Bind shader variable "fontTex" to texture unit 2, then bind our texture to texture unit 2.
+    loc = glGetUniformLocation(info.program, "backTex");
+    glUniform1i(loc, 2);
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, info.backTex);
+
+    // Bind shader variable "fontTex" to texture unit 3, then bind our texture to texture unit 3.
+    loc = glGetUniformLocation(info.program, "asciiTex");
+    glUniform1i(loc, 3);
+    glActiveTexture(GL_TEXTURE3);
+    glBindTexture(GL_TEXTURE_2D, info.textTex);
+
+    info.glReady = true;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+void openGLDone(WindowInfo& info)
+{
+    glDisableVertexAttribArray(0);
+    glDisableVertexAttribArray(1);
+    glDeleteBuffers(1, &info.vertexBuffer);
+    glDeleteProgram(info.program);
+    glDeleteTextures(1, &info.fontTex);
+
+    openGLDestroyDynamicTexture(info.foreImage, info.imageSize.dx, info.imageSize.dy, info.foreTex);
+    openGLDestroyDynamicTexture(info.backImage, info.imageSize.dx, info.imageSize.dy, info.backTex);
+    openGLDestroyDynamicTexture(info.textImage, info.imageSize.dx, info.imageSize.dy, info.textTex);
+
+    info.glReady = false;
+}
 
 //----------------------------------------------------------------------------------------------------------------------
 //----------------------------------------------------------------------------------------------------------------------
@@ -11,27 +304,40 @@
 //----------------------------------------------------------------------------------------------------------------------
 //----------------------------------------------------------------------------------------------------------------------
 
-RECT win32CalcRect(agf::WindowInfo* info, int style)
+void win32RunPresentation(WindowInfo& info, Game& game)
 {
-    RECT r = { 0, 0, info->pos.w, info->pos.h };
+    PresentIn pin;
+    pin.width = info.imageSize.dx;
+    pin.height = info.imageSize.dy;
+    pin.foreImage = info.foreImage;
+    pin.backImage = info.backImage;
+    pin.textImage = info.textImage;
+    game.present(pin);
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+RECT win32CalcRect(WindowInfo& info, int style)
+{
+    RECT r = { 0, 0, info.pos.w, info.pos.h };
     AdjustWindowRect(&r, style, FALSE);
-    r.right += -r.left + info->pos.x;
-    r.bottom += -r.top + info->pos.y;
-    r.left = info->pos.x;
-    r.top = info->pos.y;
+    r.right += -r.left + info.pos.x;
+    r.bottom += -r.top + info.pos.y;
+    r.left = info.pos.x;
+    r.top = info.pos.y;
     return r;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-void win32FullScreen(agf::WindowInfo* info)
+void win32FullScreen(WindowInfo& info)
 {
-    if (info->handle)
+    if (info.handle)
     {
-        SetWindowRgn(info->handle, 0, FALSE);
+        SetWindowRgn(info.handle, 0, FALSE);
         int screenWidth = GetSystemMetrics(SM_CXSCREEN);
         int screenHeight = GetSystemMetrics(SM_CYSCREEN);
-        info->origPos = info->pos;
+        info.origPos = info.pos;
 
         DEVMODE mode;
         EnumDisplaySettings(0, 0, &mode);
@@ -43,63 +349,80 @@ void win32FullScreen(agf::WindowInfo* info)
 
         if (result == DISP_CHANGE_SUCCESSFUL)
         {
-            DWORD style = GetWindowLong(info->handle, GWL_STYLE);
+            DWORD style = GetWindowLong(info.handle, GWL_STYLE);
             style &= ~(WS_CAPTION | WS_THICKFRAME);
-            SetWindowLong(info->handle, GWL_STYLE, style);
+            SetWindowLong(info.handle, GWL_STYLE, style);
 
             // Move the window to 0, 0
-            SetWindowPos(info->handle, 0, 0, 0, screenWidth, screenHeight, SWP_NOZORDER);
-            InvalidateRect(info->handle, 0, TRUE);
+            SetWindowPos(info.handle, 0, 0, 0, screenWidth, screenHeight, SWP_NOZORDER);
+            InvalidateRect(info.handle, 0, TRUE);
         }
     }
 
-    info->fullScreen = true;
+    info.fullScreen = true;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-void win32NoFullScreen(agf::WindowInfo* info)
+void win32NoFullScreen(WindowInfo& info)
 {
     ChangeDisplaySettings(NULL, CDS_FULLSCREEN);
-    info->fullScreen = false;
-    info->pos = info->origPos;
+    info.fullScreen = false;
+    info.pos = info.origPos;
 
-    DWORD style = GetWindowLong(info->handle, GWL_STYLE);
+    DWORD style = GetWindowLong(info.handle, GWL_STYLE);
     style |= WS_CAPTION | WS_THICKFRAME;
-    SetWindowLong(info->handle, GWL_STYLE, style);
+    SetWindowLong(info.handle, GWL_STYLE, style);
 
     RECT rc = win32CalcRect(info, style);
-    SetWindowPos(info->handle, 0, rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top, SWP_NOZORDER);
-    InvalidateRect(info->handle, 0, TRUE);
+    SetWindowPos(info.handle, 0, rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top, SWP_NOZORDER);
+    InvalidateRect(info.handle, 0, TRUE);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-void win32RenderOpenGL(agf::WindowInfo* info)
+void win32RenderOpenGL(WindowInfo& info)
 {
-    if (info)
+    if (info.glReady)
     {
-        wglMakeCurrent(info->dc, info->gl);
+        wglMakeCurrent(info.dc, info.gl);
 
         //#todo: Paint screen
+        glClearColor(0, 0, 0, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
 
-        SwapBuffers(info->dc);
+        GLint uFontRes = glGetUniformLocation(info.program, "uFontRes");
+        glProgramUniform2f(info.program, uFontRes, (float)info.fontSize.dx, (float)info.fontSize.dy);
+        GLint uResolution = glGetUniformLocation(info.program, "uResolution");
+        glProgramUniform2f(info.program, uResolution, (float)info.pos.w, (float)info.pos.h);
+
+        glUseProgram(info.program);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+
+        SwapBuffers(info.dc);
     }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-void win32ResizeWindow(agf::WindowInfo* info, int newWidth, int newHeight)
+void win32ResizeWindow(WindowInfo& info, int newWidth, int newHeight)
 {
-    if (info)
+    if (info.glReady)
     {
-        info->pos.w = newWidth;
-        info->pos.h = newHeight;
+        info.pos.w = newWidth;
+        info.pos.h = newHeight;
 
-        if (info->gl)
-        {
-            glViewport(0, 0, newWidth, newHeight);
-        }
+        glViewport(0, 0, newWidth, newHeight);
+
+        int cw = newWidth / info.fontSize.dx;
+        int ch = newHeight / info.fontSize.dy;
+
+        openGLResizeDynamicTexture(info.foreTex, info.imageSize.dx, info.imageSize.dy, cw, ch, &info.foreImage);
+        openGLResizeDynamicTexture(info.backTex, info.imageSize.dx, info.imageSize.dy, cw, ch, &info.backImage);
+        openGLResizeDynamicTexture(info.textTex, info.imageSize.dx, info.imageSize.dy, cw, ch, &info.textImage);
+
+        info.imageSize.dx = cw;
+        info.imageSize.dy = ch;
     }
 }
 
@@ -110,16 +433,16 @@ LRESULT CALLBACK win32Proc(HWND wnd, UINT msg, WPARAM w, LPARAM l)
     if (msg == WM_CREATE)
     {
         CREATESTRUCTA* cs = (CREATESTRUCTA *)l;
-        agf::WindowInfo* info = (agf::WindowInfo *)cs->lpCreateParams;
-        info->handle = wnd;
-        info->dc = 0;
-        info->gl = 0;
-        info->fullScreen = 0;
-        SetWindowLongPtrA(wnd, 0, (LONG_PTR)info);
+        WindowInfo& info = *(WindowInfo *)cs->lpCreateParams;
+        info.handle = wnd;
+        info.dc = 0;
+        info.gl = 0;
+        info.fullScreen = 0;
+        SetWindowLongPtrA(wnd, 0, (LONG_PTR)&info);
     }
     else
     {
-        agf::WindowInfo* info = (agf::WindowInfo *)GetWindowLongPtrA(wnd, 0);
+        WindowInfo& info = *(WindowInfo *)GetWindowLongPtrA(wnd, 0);
 
         switch (msg)
         {
@@ -135,23 +458,19 @@ LRESULT CALLBACK win32Proc(HWND wnd, UINT msg, WPARAM w, LPARAM l)
         break;
 
         case WM_MOVE:
-            if (info)
             {
                 int x = LOWORD(l);
                 int y = HIWORD(l);
                 RECT rc = { x, y, x, y };
                 int style = GetWindowLong(wnd, GWL_STYLE);
                 AdjustWindowRect(&rc, style, FALSE);
-                info->pos.x = rc.left;
-                info->pos.y = rc.top;
+                info.pos.x = rc.left;
+                info.pos.y = rc.top;
             }
             break;
 
         case WM_PAINT:
-            if (info)
-            {
-                win32RenderOpenGL(info);
-            }
+            win32RenderOpenGL(info);
             break;
 
         case WM_CLOSE:
@@ -159,11 +478,11 @@ LRESULT CALLBACK win32Proc(HWND wnd, UINT msg, WPARAM w, LPARAM l)
             break;
 
         case WM_DESTROY:
-            wglDeleteContext(info->gl);
-            DeleteDC(info->dc);
-            info->gl = 0;
-            info->dc = 0;
-            if (info->fullScreen) win32NoFullScreen(info);
+            wglDeleteContext(info.gl);
+            DeleteDC(info.dc);
+            info.gl = 0;
+            info.dc = 0;
+            if (info.fullScreen) win32NoFullScreen(info);
             PostQuitMessage(0);
             break;
 
@@ -180,7 +499,7 @@ LRESULT CALLBACK win32Proc(HWND wnd, UINT msg, WPARAM w, LPARAM l)
 
 //----------------------------------------------------------------------------------------------------------------------
 
-void win32Create(agf::WindowInfo* info)
+void win32Create(WindowInfo& info)
 {
     static ATOM classAtom = 0;
 
@@ -201,15 +520,15 @@ void win32Create(agf::WindowInfo* info)
     }
 
     int style = WS_OVERLAPPEDWINDOW | WS_VISIBLE;
-    info->pos.x = 10;
-    info->pos.y = 10;
-    info->pos.w = 800;
-    info->pos.h = 600;
+    info.pos.x = 10;
+    info.pos.y = 10;
+    info.pos.w = 800;
+    info.pos.h = 600;
     RECT r = win32CalcRect(info, style);
 
-    info->handle = CreateWindowA("AGF_Window", "AGF Demo", style, r.left, r.top,
-        r.right - r.left, r.bottom - r.top, 0, 0, GetModuleHandle(0), info);
-    if (info->handle)
+    info.handle = CreateWindowA("AGF_Window", "AGF Demo", style, r.left, r.top,
+        r.right - r.left, r.bottom - r.top, 0, 0, GetModuleHandle(0), &info);
+    if (info.handle)
     {
         PIXELFORMATDESCRIPTOR pfd = {
             sizeof(PIXELFORMATDESCRIPTOR),                                  // nSize
@@ -233,12 +552,12 @@ void win32Create(agf::WindowInfo* info)
             0,                                                              // dwDamageMask
         };
 
-        info->dc = GetDC(info->handle);
-        int pixelFormat = ChoosePixelFormat(info->dc, &pfd);
-        SetPixelFormat(info->dc, pixelFormat, &pfd);
+        info.dc = GetDC(info.handle);
+        int pixelFormat = ChoosePixelFormat(info.dc, &pfd);
+        SetPixelFormat(info.dc, pixelFormat, &pfd);
 
-        info->gl = wglCreateContext(info->dc);
-        wglMakeCurrent(info->dc, info->gl);
+        info.gl = wglCreateContext(info.dc);
+        wglMakeCurrent(info.dc, info.gl);
         glInit();
     }
 }
@@ -255,7 +574,8 @@ namespace agf
     Win32Platform::Win32Platform(Game& game, const CommandLine& cmdLine)
         : Platform(game, cmdLine)
     {
-        win32Create(&m_info);
+        openGLInit(m_info, 800, 600);
+        win32Create(m_info);
     }
 
     //------------------------------------------------------------------------------------------------------------------
@@ -263,7 +583,7 @@ namespace agf
 
     Win32Platform::~Win32Platform()
     {
-
+        openGLDone(m_info);
     }
 
     //------------------------------------------------------------------------------------------------------------------
