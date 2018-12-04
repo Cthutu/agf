@@ -185,7 +185,7 @@ void openGLMessage(GLenum source, GLenum type, GLuint id, GLenum severity, GLsiz
         case GL_DEBUG_SEVERITY_LOW:     pr("[LOW] ");           break;
         }
 
-        prn("%s", message);
+        prn("{0}", message);
 
         if (severity == GL_DEBUG_SEVERITY_HIGH) AGF_BREAK();
     }
@@ -198,8 +198,36 @@ void openGLFillTexture(u32* image, GLuint id, u32 colour, int width, int height)
     openGLUpdateDynamicTexture(id, image, width, height);
 }
 
+GLuint loadFontTexture(WindowInfo& info, const char* fileName)
+{
+    Data file (fileName);
+    GLuint textureID = 0;
+
+    if (file)
+    {
+        int width, height, bpp;
+        u32* image = (u32*)stbi_load_from_memory(file, (int)file.size(), &width, &height, &bpp, 4);
+        info.fontSize.dx = width / 16;
+        info.fontSize.dy = height / 16;
+
+        glGenTextures(1, &textureID);
+        glBindTexture(GL_TEXTURE_2D, textureID);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+        stbi_image_free(image);
+    }
+
+    info.fontTex = textureID;
+    return textureID;
+}
+
 void openGLInit(WindowInfo& info, int width, int height)
 {
+    loadFontTexture(info, "font1.png");
+
     static const GLfloat buffer[] = {
         //  X       Y       TX      TY
         // Top left
@@ -559,6 +587,8 @@ void win32Create(WindowInfo& info)
         info.gl = wglCreateContext(info.dc);
         wglMakeCurrent(info.dc, info.gl);
         glInit();
+
+        openGLInit(info, 800, 600);
     }
 }
 
@@ -574,7 +604,6 @@ namespace agf
     Win32Platform::Win32Platform(Game& game, const CommandLine& cmdLine)
         : Platform(game, cmdLine)
     {
-        openGLInit(m_info, 800, 600);
         win32Create(m_info);
     }
 
@@ -593,11 +622,48 @@ namespace agf
     {
         int result = 0;
         MSG msg;
+        bool quit = false;
 
-        while (GetMessageA(&msg, 0, 0, 0))
+        while(!quit)
         {
-            TranslateMessage(&msg);
-            DispatchMessageA(&msg);
+            if (PeekMessageA(&msg, 0, 0, 0, PM_NOREMOVE))
+            {
+                if (!GetMessageA(&msg, 0, 0, 0))
+                {
+                    // Time to quit!
+                    quit = true;
+                }
+                TranslateMessage(&msg);
+                DispatchMessageA(&msg);
+            }
+
+            SimulateIn sim;
+            sim.dt = 0.0;
+            sim.width = m_info.imageSize.dx;
+            sim.height = m_info.imageSize.dy;
+            sim.key = {};
+            sim.mouse = {};
+            
+            if (game().simulate(sim))
+            {
+                PresentIn pin;
+                pin.width = m_info.imageSize.dx;
+                pin.height = m_info.imageSize.dy;
+                pin.foreImage = m_info.foreImage;
+                pin.backImage = m_info.backImage;
+                pin.textImage = m_info.textImage;
+                game().present(pin);
+
+                openGLUpdateDynamicTexture(m_info.foreTex, m_info.foreImage, m_info.imageSize.dx, m_info.imageSize.dy);
+                openGLUpdateDynamicTexture(m_info.backTex, m_info.backImage, m_info.imageSize.dx, m_info.imageSize.dy);
+                openGLUpdateDynamicTexture(m_info.textTex, m_info.textImage, m_info.imageSize.dx, m_info.imageSize.dy);
+            }
+            else
+            {
+                PostQuitMessage(0);
+            }
+
+
         }
 
         return (int)msg.wParam;

@@ -20,41 +20,41 @@ namespace agf
 
     struct Point
     {
-        int x, y;
+        int x = 0, y = 0;
     };
 
     struct Size
     {
-        int dx, dy;
+        int dx = 0, dy = 0;
     };
 
     struct Rect
     {
-        int x, y;
-        int w, h;
+        int x = 0, y = 0;
+        int w = 0, h = 0;
     };
 
     struct WindowInfo
     {
-        HWND        handle;
-        HDC         dc;
-        HGLRC       gl;
+        HWND        handle = 0;
+        HDC         dc = 0;
+        HGLRC       gl = 0;
         Rect        pos;
         Rect        origPos;
-        bool        fullScreen;
+        bool        fullScreen = false;
 
-        GLint       program;
+        GLint       program = 0;
         Size        fontSize;
-        GLuint      vertexBuffer;
-        GLuint      fontTex;
-        GLuint      foreTex;
-        GLuint      backTex;
-        GLuint      textTex;
-        agf::u32*   foreImage;
-        agf::u32*   backImage;
-        agf::u32*   textImage;
+        GLuint      vertexBuffer = 0;
+        GLuint      fontTex = 0;
+        GLuint      foreTex = 0;
+        GLuint      backTex = 0;
+        GLuint      textTex = 0;
+        agf::u32*   foreImage = nullptr;
+        agf::u32*   backImage = nullptr;
+        agf::u32*   textImage = nullptr;
         Size        imageSize;
-        bool        glReady;
+        bool        glReady = false;
     };
 
     //----------------------------------------------------------------------------------------------------------------------

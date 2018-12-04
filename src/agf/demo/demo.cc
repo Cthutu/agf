@@ -27,7 +27,7 @@ DemoGame::~DemoGame()
 
 bool DemoGame::simulate(const agf::SimulateIn& sim)
 {
-    return false;
+    return true;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -35,7 +35,12 @@ bool DemoGame::simulate(const agf::SimulateIn& sim)
 
 void DemoGame::present(const agf::PresentIn& pin)
 {
-
+    for (int i = 0; i < pin.width * pin.height; ++i)
+    {
+        pin.foreImage[i] = 0xffffffff;
+        pin.backImage[i] = 0xff000000;
+        pin.textImage[i] = (agf::u32)(i % 256);
+    }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
