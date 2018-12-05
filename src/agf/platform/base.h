@@ -4,10 +4,11 @@
 
 #pragma once
 
+#include <agf/game/game.h>
+
 namespace agf
 {
 
-    class Game;
     class CommandLine;
 
     class Platform
@@ -28,9 +29,16 @@ namespace agf
 
         const CommandLine& cmdLine() const { return m_cmdLine; }
 
+        KeyState& keyState() { return m_keyState; }
+        const KeyState& keyState() const { return m_keyState; }
+        MouseState& mouseState() { return m_mouseState; }
+        const MouseState& mouseState() const { return m_mouseState; }
+
     private:
         Game&               m_game;
         const CommandLine&  m_cmdLine;
+        KeyState            m_keyState;
+        MouseState          m_mouseState;
     };
 
 }

@@ -15,6 +15,37 @@
 using namespace agf;
 
 //----------------------------------------------------------------------------------------------------------------------
+
+string win32GetExePathName()
+{
+#if 0//def _DEBUG
+    return "";
+#else
+    int len = MAX_PATH;
+    for (;;)
+    {
+        char* buf = (char *)malloc(len);
+        if (!buf) return 0;
+        DWORD pathLen = GetModuleFileName(0, buf, len);
+        if (GetLastError() == ERROR_INSUFFICIENT_BUFFER)
+        {
+            // Not enough memory!
+            len = 2 * len;
+            free(buf);
+            continue;
+        }
+
+        while (buf[pathLen] != '\\') --pathLen;
+        buf[pathLen] = 0;
+        string path(buf);
+        path += "\\";
+        free(buf);
+        return path;
+    }
+#endif
+}
+
+//----------------------------------------------------------------------------------------------------------------------
 //----------------------------------------------------------------------------------------------------------------------
 // O P E N G L
 //----------------------------------------------------------------------------------------------------------------------
@@ -226,8 +257,6 @@ GLuint loadFontTexture(WindowInfo& info, const char* fileName)
 
 void openGLInit(WindowInfo& info, int width, int height)
 {
-    loadFontTexture(info, "font1.png");
-
     static const GLfloat buffer[] = {
         //  X       Y       TX      TY
         // Top left
@@ -256,8 +285,9 @@ void openGLInit(WindowInfo& info, int width, int height)
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
     GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
 
-    Data vertexCode("ascii.vs");
-    Data pixelCode("ascii.fs");
+    string exePath = win32GetExePathName();
+    Data vertexCode((exePath + "ascii.vs").c_str());
+    Data pixelCode((exePath + "ascii.fs").c_str());
 
     openGLCompileShader(vertexShader, vertexCode);
     openGLCompileShader(fragmentShader, pixelCode);
@@ -271,7 +301,7 @@ void openGLInit(WindowInfo& info, int width, int height)
     glUseProgram(info.program);
 
     // Set up textures
-    info.fontTex = openGLLoadFontTexture(info, "font1.png");
+    info.fontTex = openGLLoadFontTexture(info, (win32GetExePathName() + "font1.png").c_str());
     int cw = width / info.fontSize.dx;
     int ch = height / info.fontSize.dy;
     info.foreTex = openGLCreateDynamicTexture(cw, ch, &info.foreImage);
@@ -511,8 +541,21 @@ namespace agf
             sim.dt = 0.0;
             sim.width = m_info.imageSize.dx;
             sim.height = m_info.imageSize.dy;
-            sim.key = {};
-            sim.mouse = {};
+
+            if (keyState().alt && keyState().vkey == Key::Return && keyState().down)
+            {
+                keyState().vkey = Key::None;
+                if (m_info.fullScreen)
+                {
+                    win32NoFullScreen(m_info);
+                }
+                else
+                {
+                    win32FullScreen(m_info);
+                }
+            }
+            sim.key = keyState();
+            sim.mouse = mouseState();
             
             if (game().simulate(sim))
             {
@@ -654,6 +697,28 @@ namespace agf
 
             case WM_MENUCHAR:
                 return MAKELRESULT(0, MNC_CLOSE);
+
+            case WM_SYSKEYDOWN:
+            case WM_KEYDOWN:
+            case WM_SYSKEYUP:
+            case WM_KEYUP:
+                {
+                    KeyState& ks = keyState();
+                    ks.vkey = (Key)w;
+                    ks.ch = 0;
+                    ks.down = msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN;
+                    ks.shift = HIBYTE(GetKeyState(VK_SHIFT)) != 0;
+                    ks.ctrl = HIBYTE(GetKeyState(VK_CONTROL)) != 0;
+                    ks.alt = HIBYTE(GetKeyState(VK_MENU)) != 0;
+                }
+                break;
+
+            case WM_CHAR:
+                if ((l & 0xa000) == 0)
+                {
+                    keyState().ch = (char)w;
+                }
+                break;
 
             default:
                 return DefWindowProcA(wnd, msg, w, l);

@@ -14,5 +14,8 @@ public:
 
     bool simulate(const agf::SimulateIn& sim) override;
     void present(const agf::PresentIn& pin) override;
+
+private:
+    char getTile(int x, int y);
 };
 

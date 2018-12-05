@@ -12,6 +12,61 @@ namespace agf
 {
 
     //------------------------------------------------------------------------------------------------------------------
+    // Virtual keys
+
+    enum class Key
+    {
+        None        = 0,        // No key pressed.
+        Back        = 0x08,
+        Tab         = 0x09,
+        Return      = 0x0d,
+        Pause       = 0x13,
+        Escape      = 0x1b,
+        End         = 0x23,
+        Home        = 0x24,
+        Left        = 0x25,
+        Up          = 0x26,
+        Right       = 0x27,
+        Down        = 0x28,
+        Print       = 0x2a,
+        Insert      = 0x2d,
+        Delete      = 0x2e,
+
+        NumPad0     = 0x60,
+        NumPad1     = 0x61,
+        NumPad2     = 0x62,
+        NumPad3     = 0x63,
+        NumPad4     = 0x64,
+        NumPad5     = 0x65,
+        NumPad6     = 0x66,
+        NumPad7     = 0x67,
+        NumPad8     = 0x68,
+        NumPad9     = 0x69,
+        NumMultiply = 0x6a,
+        NumAdd      = 0x6b,
+        NumSlash    = 0x6c,
+        NumMinis    = 0x6d,
+        NumDot      = 0x6e,
+        NumDivide   = 0x6f,
+
+        F1          = 0x70,
+        F2          = 0x71,
+        F3          = 0x72,
+        F4          = 0x73,
+        F5          = 0x74,
+        F6          = 0x75,
+        F7          = 0x76,
+        F8          = 0x77,
+        F9          = 0x78,
+        F10         = 0x79,
+        F11         = 0x7a,
+        F12         = 0x7b,
+
+        NumLock     = 0x90,
+        ScrollLock  = 0x91,
+    };
+
+    //------------------------------------------------------------------------------------------------------------------
     // Key state
 
     struct KeyState
@@ -20,7 +75,7 @@ namespace agf
         bool    shift;
         bool    ctrl;
         bool    alt;
-        int     vkey;
+        Key     vkey;
         char    ch;
     };
 
@@ -48,8 +103,8 @@ namespace agf
         int                 height;
 
         // Input
-        vector<KeyState>    key;
-        vector<MouseState>  mouse;
+        KeyState            key;
+        MouseState          mouse;
     };
 
     //------------------------------------------------------------------------------------------------------------------

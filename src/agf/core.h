@@ -111,7 +111,7 @@
 #if AGF_OS_WIN32 && AGF_DEBUG
 #   define AGF_BREAK() ::DebugBreak()
 #else
-#   define AGF_BREAK()
+#   define AGF_BREAK() do {} while(0)
 #endif
 
 #define AGF_ASSERT(x, ...) assert(x)
