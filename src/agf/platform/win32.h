@@ -78,7 +78,8 @@ namespace agf
         f64 timeToSecs(TimePeriod period) override;
 
     private:
-        WindowInfo  m_info;
+        WindowInfo          m_info;
+        TRACKMOUSEEVENT     m_mouseTrack;
     };
 
 }

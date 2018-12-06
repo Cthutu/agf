@@ -51,6 +51,7 @@ static const char gMaze[gMazeHeight * gMazeHeight + 1] =
 
 DemoGame::DemoGame(const agf::CommandLine& commandLine)
     : Game(commandLine)
+    , m_cusorOn(false)
 {
 
 }
@@ -68,6 +69,17 @@ DemoGame::~DemoGame()
 
 bool DemoGame::simulate(const agf::SimulateIn& sim)
 {
+    if (sim.mouse.onScreen)
+    {
+        m_cusorOn = true;
+        m_cx = sim.mouse.x;
+        m_cy = sim.mouse.y;
+    }
+    else
+    {
+        m_cusorOn = false;
+    }
+
     if (sim.key.down && sim.key.vkey == agf::Key::Escape)
     {
         return false;
@@ -80,6 +92,9 @@ bool DemoGame::simulate(const agf::SimulateIn& sim)
 
 void DemoGame::present(const agf::PresentIn& pin)
 {
+    int xx = 2;
+    int yy = 2;
+
     for (int i = 0; i < pin.width * pin.height; ++i)
     {
         pin.foreImage[i] = 0xffffffff;
@@ -115,11 +130,18 @@ void DemoGame::present(const agf::PresentIn& pin)
 
             if (x + 2 < pin.width && y + 2 < pin.height)
             {
-                pin.foreImage[(y + 2) * pin.width + (x + 2)] = colour;
-                pin.backImage[(y + 2) * pin.width + (x + 2)] = 0;
-                pin.textImage[(y + 2) * pin.width + (x + 2)] = (agf::u32)c;
+                pin.foreImage[(y + yy) * pin.width + (x + xx)] = colour;
+                pin.backImage[(y + yy) * pin.width + (x + xx)] = 0;
+                pin.textImage[(y + yy) * pin.width + (x + xx)] = (agf::u32)c;
             }
         }
+    }
+
+    // Render cursor
+    if (m_cusorOn)
+    {
+        std::swap(pin.foreImage[m_cy * pin.width + m_cx],
+                  pin.backImage[m_cy * pin.width + m_cx]);
     }
 }
 

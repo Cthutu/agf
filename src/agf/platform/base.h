@@ -17,6 +17,8 @@ namespace agf
         Platform(Game& game, const CommandLine& cmdLine)
             : m_game(game)
             , m_cmdLine(cmdLine)
+            , m_keyState()
+            , m_mouseState()
         {}
 
         virtual ~Platform()

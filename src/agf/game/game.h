@@ -77,6 +77,15 @@ namespace agf
         bool    alt;
         Key     vkey;
         char    ch;
+
+        KeyState()
+            : down(false)
+            , shift(false)
+            , ctrl(false)
+            , alt(false)
+            , vkey(Key::None)
+            , ch(0)
+        {}
     };
 
     //------------------------------------------------------------------------------------------------------------------
@@ -84,10 +93,19 @@ namespace agf
 
     struct MouseState
     {
+        bool    onScreen;
         bool    leftDown;
         bool    rightDown;
         int     x;
         int     y;
+
+        MouseState()
+            : onScreen(false)
+            , leftDown(false)
+            , rightDown(false)
+            , x(0)
+            , y(0)
+        {}
     };
 
     //------------------------------------------------------------------------------------------------------------------

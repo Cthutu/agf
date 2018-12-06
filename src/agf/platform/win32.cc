@@ -11,6 +11,7 @@
 #include <agf/platform/win32.h>
 #include <memory.h>
 #include <stdlib.h>
+#include <windowsx.h>
 
 using namespace agf;
 
@@ -724,6 +725,41 @@ namespace agf
                 {
                     keyState().ch = (char)w;
                 }
+                break;
+
+            case WM_MOUSELEAVE:
+                prn("Leave");
+                mouseState().onScreen = false;
+                mouseState().leftDown = false;
+                mouseState().rightDown = false;
+                break;
+
+            case WM_MOUSEMOVE:
+                prn("Move");
+                mouseState().x = GET_X_LPARAM(l) / m_info.fontSize.dx;
+                mouseState().y = GET_Y_LPARAM(l) / m_info.fontSize.dy;
+                mouseState().onScreen = (mouseState().x < m_info.imageSize.dx &&
+                    mouseState().y < m_info.imageSize.dy);
+                m_mouseTrack.cbSize = sizeof(TRACKMOUSEEVENT);
+                m_mouseTrack.hwndTrack = wnd;
+                m_mouseTrack.dwFlags = TME_LEAVE;
+                TrackMouseEvent(&m_mouseTrack);
+                break;
+
+            case WM_LBUTTONDOWN:
+                mouseState().leftDown = true;
+                break;
+
+            case WM_LBUTTONUP:
+                mouseState().leftDown = false;
+                break;
+
+            case WM_RBUTTONDOWN:
+                mouseState().rightDown = true;
+                break;
+
+            case WM_RBUTTONUP:
+                mouseState().rightDown = false;
                 break;
 
             default:

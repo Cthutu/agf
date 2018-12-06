@@ -17,5 +17,8 @@ public:
 
 private:
     char getTile(int x, int y);
+
+    bool m_cusorOn;
+    int m_cx, m_cy;
 };
 
