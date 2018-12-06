@@ -73,6 +73,10 @@ namespace agf
         static LRESULT CALLBACK win32Proc(HWND wnd, UINT msg, WPARAM w, LPARAM l);
         LRESULT proc(HWND wnd, UINT msg, WPARAM w, LPARAM l);
 
+        TimePoint timeNow() override;
+        TimePeriod timePeriod(TimePoint a, TimePoint b) override;
+        f64 timeToSecs(TimePeriod period) override;
+
     private:
         WindowInfo  m_info;
     };

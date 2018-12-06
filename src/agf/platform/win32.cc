@@ -523,6 +523,7 @@ namespace agf
         int result = 0;
         MSG msg;
         bool quit = false;
+        TimePoint last = timeNow();
 
         while(!quit)
         {
@@ -556,6 +557,11 @@ namespace agf
             }
             sim.key = keyState();
             sim.mouse = mouseState();
+
+            TimePoint t = timeNow();
+            TimePeriod dt = timePeriod(last, t);
+            sim.dt = timeToSecs(dt);
+            last = t;
             
             if (game().simulate(sim))
             {
@@ -735,6 +741,33 @@ namespace agf
         return ((msg == WM_CREATE)
             ? (Win32Platform *)(((LPCREATESTRUCTA)l)->lpCreateParams)
             : (Win32Platform *)GetWindowLongPtrA(wnd, 0))->proc(wnd, msg, w, l);
+    }
+
+    //------------------------------------------------------------------------------------------------------------------
+
+    TimePoint Win32Platform::timeNow()
+    {
+        LARGE_INTEGER t;
+        QueryPerformanceCounter(&t);
+        return t;
+    }
+
+    //------------------------------------------------------------------------------------------------------------------
+
+    TimePeriod Win32Platform::timePeriod(TimePoint a, TimePoint b)
+    {
+        LARGE_INTEGER t;
+        t.QuadPart = b.QuadPart - a.QuadPart;
+        return t;
+    }
+
+    //------------------------------------------------------------------------------------------------------------------
+
+    f64 Win32Platform::timeToSecs(TimePeriod period)
+    {
+        LARGE_INTEGER freq;
+        QueryPerformanceFrequency(&freq);
+        return (f64)period.QuadPart / (f64)freq.QuadPart;
     }
 
     //------------------------------------------------------------------------------------------------------------------

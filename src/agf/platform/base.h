@@ -29,10 +29,21 @@ namespace agf
 
         const CommandLine& cmdLine() const { return m_cmdLine; }
 
+    protected:
+        //
+        // I/O
+        //
         KeyState& keyState() { return m_keyState; }
         const KeyState& keyState() const { return m_keyState; }
         MouseState& mouseState() { return m_mouseState; }
         const MouseState& mouseState() const { return m_mouseState; }
+
+        //
+        // Time
+        //
+        virtual TimePoint timeNow() = 0;
+        virtual TimePeriod timePeriod(TimePoint a, TimePoint b) = 0;
+        virtual f64 timeToSecs(TimePeriod period) = 0;
 
     private:
         Game&               m_game;
