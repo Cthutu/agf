@@ -2,6 +2,8 @@
 
 AGF is a foundation for build ASCII style games.
 
+![ASCII Pacman](https://imgur.com/a/JyK6J51)
+
 ## Building
 
 There are 2 ways to build the executable.  One is via Visual Studio 2017, and another is via a batch file.  The
