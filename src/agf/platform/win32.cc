@@ -302,7 +302,7 @@ void openGLInit(WindowInfo& info, int width, int height)
     glUseProgram(info.program);
 
     // Set up textures
-    info.fontTex = openGLLoadFontTexture(info, (win32GetExePathName() + "font1.png").c_str());
+    info.fontTex = openGLLoadFontTexture(info, (win32GetExePathName() + "font3.png").c_str());
     int cw = width / info.fontSize.dx;
     int ch = height / info.fontSize.dy;
     info.foreTex = openGLCreateDynamicTexture(cw, ch, &info.foreImage);

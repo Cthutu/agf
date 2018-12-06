@@ -92,8 +92,11 @@ bool DemoGame::simulate(const agf::SimulateIn& sim)
 
 void DemoGame::present(const agf::PresentIn& pin)
 {
-    int xx = 2;
-    int yy = 2;
+    int xx = (pin.width - gMazeWidth) / 2;
+    int yy = (pin.height - gMazeHeight) / 2;;
+
+    if (xx < 0) xx = 0;
+    if (yy < 0) yy = 0;
 
     for (int i = 0; i < pin.width * pin.height; ++i)
     {
