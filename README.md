@@ -2,7 +2,7 @@
 
 AGF is a foundation for build ASCII style games.
 
-![ASCII Pacman](https://i.imgur.com/DmUxWU1.png)
+![ASCII Pacman](https://i.imgur.com/bYhy97Q.png)
 
 ## Building
 
