@@ -9,10 +9,9 @@
 // Pacman maze
 //----------------------------------------------------------------------------------------------------------------------
 
-static const int gMazeWidth = 28;
-static const int gMazeHeight = 31;
+static const agf::f64 kPacmanSpeed = 0.2;
 
-static const char gMaze[gMazeHeight * gMazeHeight + 1] =
+static const char gMaze[kMazeSize + 1] =
 "1------------21------------2"
 "|............||............|"
 "|.1--2.1---2.||.1---2.1--2.|"
@@ -53,7 +52,7 @@ DemoGame::DemoGame(const agf::CommandLine& commandLine)
     : Game(commandLine)
     , m_cusorOn(false)
 {
-
+    newGame();
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -62,6 +61,33 @@ DemoGame::DemoGame(const agf::CommandLine& commandLine)
 DemoGame::~DemoGame()
 {
 
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// New Game
+
+void DemoGame::newGame()
+{
+    memcpy(m_maze, gMaze, kMazeWidth * kMazeHeight);
+    m_x = 14;
+    m_y = 17;
+    m_dx = 0;
+    m_dy = 0;
+    m_time = 0.0;
+
+    for (int i = 0; i < kMazeSize; ++i)
+    {
+        if (m_maze[i] == '.') ++m_pillsLeft;
+    }
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// Print
+
+void DemoGame::print(const agf::PresentIn& pin, int x, int y, const char* msg)
+{
+    int i = x + pin.width * y;
+    for (; *msg != 0; ++msg) pin.textImage[i++] = (agf::u32)*msg;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -80,6 +106,81 @@ bool DemoGame::simulate(const agf::SimulateIn& sim)
         m_cusorOn = false;
     }
 
+    //
+    // Handle pacman's controls
+    //
+    int dx = 0, dy = 0;
+    if (sim.key.down)
+    {
+        switch (sim.key.vkey)
+        {
+        case agf::Key::Left:     dx = -1;  dy =  0;  break;
+        case agf::Key::Right:    dx =  1;  dy =  0;  break;
+        case agf::Key::Up:       dx =  0;  dy = -1;  break;
+        case agf::Key::Down:     dx =  0;  dy =  1;  break;
+        default:
+            dx = m_dx;
+            dy = m_dy;
+        }
+    }
+    else
+    {
+        dx = m_dx;
+        dy = m_dy;
+    }
+
+    //
+    // Update pacman's position
+    //
+
+    m_time += sim.dt;
+
+    // Check the intended direction
+    int nx = m_x + dx;
+    int ny = m_y + dy;
+    if (nx < 0) nx = kMazeWidth - 1;
+    if (nx == kMazeWidth) nx = 0;
+    char c = getTile(nx, ny);
+    if ((dx || dy) && (c == ' ' || c == '.' || c == 'O'))
+    {
+        // We're trying to move down a different corridor.
+        m_dx = dx;
+        m_dy = dy;
+    }
+
+    // Check the actual direction we will move
+    nx = m_x + m_dx;
+    ny = m_y + m_dy;
+    if (nx < 0) nx = kMazeWidth - 1;
+    if (nx == kMazeWidth) nx = 0;
+    c = getTile(nx, ny);
+    if (c != ' ' && c != '.' && c != 'O')
+    {
+        // We've hit a wall.  Stop!
+        m_dx = 0;
+        m_dy = 0;
+    }
+
+    if (m_time > kPacmanSpeed)
+    {
+        m_x += m_dx;
+        m_y += m_dy;
+
+        // Deal with wrap around
+        if (m_x < 0) m_x = kMazeWidth - 1;
+        if (m_x == kMazeWidth) m_x = 0;
+
+        while (m_time > kPacmanSpeed) m_time -= kPacmanSpeed;
+    }
+
+    //
+    // Check what pacman is landing on
+    //
+
+    //
+    // Check to see if pacman has hit a ghost
+    //
+
     if (sim.key.down && sim.key.vkey == agf::Key::Escape)
     {
         return false;
@@ -92,8 +193,8 @@ bool DemoGame::simulate(const agf::SimulateIn& sim)
 
 void DemoGame::present(const agf::PresentIn& pin)
 {
-    int xx = (pin.width - gMazeWidth) / 2;
-    int yy = (pin.height - gMazeHeight) / 2;;
+    int xx = (pin.width - kMazeWidth) / 2;
+    int yy = (pin.height - kMazeHeight) / 2;;
 
     if (xx < 0) xx = 0;
     if (yy < 0) yy = 0;
@@ -106,9 +207,9 @@ void DemoGame::present(const agf::PresentIn& pin)
     }
 
     // Draw the pacman board
-    for (int y = 0; y < gMazeHeight; ++y)
+    for (int y = 0; y < kMazeHeight; ++y)
     {
-        for (int x = 0; x < gMazeWidth; ++x)
+        for (int x = 0; x < kMazeWidth; ++x)
         {
             agf::u32 colour = 0xff0000ff;
             char c = getTile(x, y);
@@ -131,30 +232,35 @@ void DemoGame::present(const agf::PresentIn& pin)
                 break;
             }
 
-            if (x + 2 < pin.width && y + 2 < pin.height)
-            {
-                pin.foreImage[(y + yy) * pin.width + (x + xx)] = colour;
-                pin.backImage[(y + yy) * pin.width + (x + xx)] = 0;
-                pin.textImage[(y + yy) * pin.width + (x + xx)] = (agf::u32)c;
-            }
+            setTile(pin, x + xx, y + yy, c, colour, 0);
         }
     }
 
-    // Render cursor
-    if (m_cusorOn)
-    {
-        std::swap(pin.foreImage[m_cy * pin.width + m_cx],
-                  pin.backImage[m_cy * pin.width + m_cx]);
-    }
+    // Draw pacman
+    setTile(pin, xx + m_x, yy + m_y, '@', 0xff00ffff, 0);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
 char DemoGame::getTile(int x, int y)
 {
-    assert(x >= 0 && x < gMazeWidth);
-    assert(y >= 0 && y < gMazeHeight);
-    return gMaze[y * gMazeWidth + x];
+    assert(x >= 0 && x < kMazeWidth);
+    assert(y >= 0 && y < kMazeHeight);
+    return m_maze[y * kMazeWidth + x];
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+void DemoGame::setTile(const agf::PresentIn& pin, int x, int y, char c, agf::u32 fore, agf::u32 back)
+{
+    if (x >= 0 && y >= 0 && x < pin.width && y < pin.height)
+    {
+        int i = y * pin.width + x;
+        pin.foreImage[i] = fore;
+        pin.backImage[i] = back;
+        pin.textImage[i] = (agf::u32)c;
+    }
+
 }
 
 //----------------------------------------------------------------------------------------------------------------------

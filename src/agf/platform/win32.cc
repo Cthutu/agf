@@ -735,7 +735,6 @@ namespace agf
                 break;
 
             case WM_MOUSEMOVE:
-                prn("Move");
                 mouseState().x = GET_X_LPARAM(l) / m_info.fontSize.dx;
                 mouseState().y = GET_Y_LPARAM(l) / m_info.fontSize.dy;
                 mouseState().onScreen = (mouseState().x < m_info.imageSize.dx &&
