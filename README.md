@@ -4,6 +4,10 @@ AGF is a foundation for build ASCII style games.
 
 ![ASCII Pacman](https://i.imgur.com/bYhy97Q.png)
 
+The demo is just an implementation of pacman and is entirely contained within `src/agf/demo.cc` as the `DemoGame` class.  You can derive
+your own class from `agf::Game` and override the two methods (`simulate` and `present`), and instantiate it in the main function.  Until
+documentation is written, please refer to the DemoGame class to understand how to use the engine.
+
 ## Building
 
 There are 2 ways to build the executable.  One is via Visual Studio 2017, and another is via a batch file.  The
