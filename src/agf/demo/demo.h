@@ -22,7 +22,9 @@ public:
 private:
     void newGame();
     char getTile(int x, int y);
-    void setTile(const agf::PresentIn& pin, int x, int y, char c, agf::u32 fore, agf::u32 back);
+    void setTile(int x, int y, char c);
+
+    void printChar(const agf::PresentIn& pin, int x, int y, char c, agf::u32 fore, agf::u32 back);
     void print(const agf::PresentIn& pin, int x, int y, const char* msg);
 
     bool m_cusorOn;

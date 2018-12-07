@@ -74,6 +74,7 @@ void DemoGame::newGame()
     m_dx = 0;
     m_dy = 0;
     m_time = 0.0;
+    m_pillsLeft = 0;
 
     for (int i = 0; i < kMazeSize; ++i)
     {
@@ -171,11 +172,28 @@ bool DemoGame::simulate(const agf::SimulateIn& sim)
         if (m_x == kMazeWidth) m_x = 0;
 
         while (m_time > kPacmanSpeed) m_time -= kPacmanSpeed;
-    }
 
-    //
-    // Check what pacman is landing on
-    //
+        //
+        // Check what pacman is landing on
+        //
+        switch (c)
+        {
+        case '.':
+            setTile(nx, ny, ' ');
+            --m_pillsLeft;
+            if (m_pillsLeft == 0) 
+            {
+                newGame();
+                m_dx = 0;
+                m_dy = 0;
+            }
+            break;
+
+        default:
+            break;
+        }
+
+    }
 
     //
     // Check to see if pacman has hit a ghost
@@ -232,12 +250,12 @@ void DemoGame::present(const agf::PresentIn& pin)
                 break;
             }
 
-            setTile(pin, x + xx, y + yy, c, colour, 0);
+            printChar(pin, x + xx, y + yy, c, colour, 0);
         }
     }
 
     // Draw pacman
-    setTile(pin, xx + m_x, yy + m_y, '@', 0xff00ffff, 0);
+    printChar(pin, xx + m_x, yy + m_y, '@', 0xff00ffff, 0);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -251,7 +269,16 @@ char DemoGame::getTile(int x, int y)
 
 //----------------------------------------------------------------------------------------------------------------------
 
-void DemoGame::setTile(const agf::PresentIn& pin, int x, int y, char c, agf::u32 fore, agf::u32 back)
+void DemoGame::setTile(int x, int y, char c)
+{
+    assert(x >= 0 && x < kMazeWidth);
+    assert(y >= 0 && y < kMazeHeight);
+    m_maze[y * kMazeWidth + x] = c;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+void DemoGame::printChar(const agf::PresentIn& pin, int x, int y, char c, agf::u32 fore, agf::u32 back)
 {
     if (x >= 0 && y >= 0 && x < pin.width && y < pin.height)
     {
