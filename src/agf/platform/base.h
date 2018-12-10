@@ -5,6 +5,7 @@
 #pragma once
 
 #include <agf/game/game.h>
+#include <agf/platform/fad.h>
 
 namespace agf
 {
@@ -31,6 +32,8 @@ namespace agf
 
         const CommandLine& cmdLine() const { return m_cmdLine; }
 
+        ExeDrive& getExeDrive() { return m_exeDrive; }
+
     protected:
         //
         // I/O
@@ -52,6 +55,7 @@ namespace agf
         const CommandLine&  m_cmdLine;
         KeyState            m_keyState;
         MouseState          m_mouseState;
+        ExeDrive            m_exeDrive;
     };
 
 }

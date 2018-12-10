@@ -65,8 +65,11 @@ solution "agf"
         }
 
         postbuildcommands {
-            "copy \"" .. path.translate(path.join(rootdir, "data", "*.*")) .. '" "' ..
-                path.translate(path.join(rootdir, "_Bin", "%{cfg.platform}_%{cfg.buildcfg}_%{prj.name}")) .. '"'
+            path.translate(path.join(rootdir, "make", "fad.exe")) .. " " ..
+            path.translate(path.join(rootdir, "_Bin", "%{cfg.platform}_%{cfg.buildcfg}_%{prj.name}", "%{prj.name}.exe")) .. " " ..
+            path.translate(path.join(rootdir, "data", "ascii.fs")) .. " " ..
+            path.translate(path.join(rootdir, "data", "ascii.vs")) .. " " ..
+            path.translate(path.join(rootdir, "data", "font3.png"))
         }
 
         -- Debug only linking
