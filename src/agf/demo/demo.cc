@@ -80,6 +80,35 @@ void DemoGame::newGame()
     {
         if (m_maze[i] == '.') ++m_pillsLeft;
     }
+
+    blinky.x = 14;
+    blinky.y = 11;
+    blinky.dx = -1;
+    blinky.dy = 0;
+    blinky.state = GhostInfo::State::Normal;
+    blinky.colour = agf::Colour::red();
+
+    pinky.x = 14;
+    pinky.y = 14;
+    pinky.dx = 0;
+    pinky.dy = 0;
+    pinky.state = GhostInfo::State::InGhostHouse;
+    pinky.colour = agf::Colour(0xff, 0xb9, 0xff);
+
+    inky.x = 12;
+    inky.y = 14;
+    inky.dx = 0;
+    inky.dy = 0;
+    inky.state = GhostInfo::State::InGhostHouse;
+    inky.colour = agf::Colour::cyan();
+
+    clyde.x = 16;
+    clyde.y = 14;
+    clyde.dx = -1;
+    clyde.dy = 0;
+    clyde.state = GhostInfo::State::InGhostHouse;
+    clyde.colour = agf::Colour(0xff, 0xb9, 0x51);
+
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -192,7 +221,6 @@ bool DemoGame::simulate(const agf::SimulateIn& sim)
         default:
             break;
         }
-
     }
 
     //
@@ -254,8 +282,15 @@ void DemoGame::present(const agf::PresentIn& pin)
         }
     }
 
+    // Draw Ghosts
+    drawGhost(xx, yy, pin, blinky);
+    drawGhost(xx, yy, pin, pinky);
+    drawGhost(xx, yy, pin, inky);
+    drawGhost(xx, yy, pin, clyde);
+
     // Draw pacman
     printChar(pin, xx + m_x, yy + m_y, '@', 0xff00ffff, 0);
+
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -288,6 +323,13 @@ void DemoGame::printChar(const agf::PresentIn& pin, int x, int y, char c, agf::u
         pin.textImage[i] = (agf::u32)c;
     }
 
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+void DemoGame::drawGhost(int offsetX, int offsetY, const agf::PresentIn& pin, const GhostInfo& ghost)
+{
+    printChar(pin, offsetX + ghost.x, offsetY + ghost.y, 1, ghost.colour, agf::Colour::black());
 }
 
 //----------------------------------------------------------------------------------------------------------------------

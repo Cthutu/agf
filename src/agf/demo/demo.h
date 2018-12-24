@@ -27,6 +27,20 @@ private:
     void printChar(const agf::PresentIn& pin, int x, int y, char c, agf::u32 fore, agf::u32 back);
     void print(const agf::PresentIn& pin, int x, int y, const char* msg);
 
+    struct GhostInfo
+    {
+        int x, y;
+        int dx, dy;
+        enum class State
+        {
+            InGhostHouse,
+            Normal,
+        } state;
+        agf::u32 colour;
+    };
+
+    void drawGhost(int offsetX, int offsetY, const agf::PresentIn& pin, const GhostInfo& ghost);
+
     bool m_cusorOn;
     int m_cx, m_cy;
 
@@ -35,5 +49,10 @@ private:
     int m_pillsLeft;        // Number of pills left
     int m_dx, m_dy;         // Current direction
     agf::f64 m_time;        // Time when pacman can move
+
+    GhostInfo blinky;
+    GhostInfo pinky;
+    GhostInfo inky;
+    GhostInfo clyde;
 };
 

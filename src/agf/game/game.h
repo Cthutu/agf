@@ -160,6 +160,34 @@ namespace agf
     };
 
     //------------------------------------------------------------------------------------------------------------------
+    // Colour class
+
+    class Colour
+    {
+    public:
+        Colour(u8 red, u8 green, u8 blue)
+            : m_colour(0xff000000 + ((u32)blue << 16) + ((u32)green << 8) + (u32)red)
+        {}
+
+        Colour(const Colour&) = default;
+        Colour& operator= (const Colour& colour) = default;
+
+        operator agf::u32 () const { return m_colour; }
+
+        static u32 red()        { return (u32)Colour(255, 0, 0); }
+        static u32 yellow()     { return (u32)Colour(255, 255, 0); }
+        static u32 green()      { return (u32)Colour(0, 255, 0); }
+        static u32 cyan()       { return (u32)Colour(0, 255, 255); }
+        static u32 blue()       { return (u32)Colour(0, 0, 255); }
+        static u32 magenta()    { return (u32)Colour(255, 0, 255); }
+        static u32 white()      { return (u32)Colour(255, 255, 255); }
+        static u32 black()      { return (u32)Colour(0, 0, 0); }
+
+    private:
+        agf::u32 m_colour;
+    };
+
+    //------------------------------------------------------------------------------------------------------------------
     //------------------------------------------------------------------------------------------------------------------
 
 }
